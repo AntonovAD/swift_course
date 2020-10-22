@@ -9,6 +9,16 @@ final class User: MySQLModel {
     var name: String
     var email: String
     var password: String
+
+    // Timestampable
+    static let createdAtKey: TimestampKey? = \.createdAt
+    static let updatedAtKey: TimestampKey? = \.updatedAt
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    // SoftDelete
+    static let deletedAtKey: TimestampKey? = \.deletedAt
+    var deletedAt: Date?
 }
 
 extension User: Migration {
@@ -16,13 +26,14 @@ extension User: Migration {
         return Database.create(self, on: connection) { builder in
             builder.field(for: \.id, isIdentifier: true)
 
-            builder.field(for: \.name)
-            builder.unique(on: \.name)
+            builder.field(for: \.name, type: .varchar(255), .notNull, .unique())
+            builder.field(for: \.email, type: .varchar(255), .notNull, .unique())
+            builder.field(for: \.password, type: .varchar(255), .notNull)
 
-            builder.field(for: \.email)
-            builder.unique(on: \.email)
+            builder.field(for: \.createdAt, type: .datetime, .default(.function("CURRENT_TIMESTAMP")))
+            builder.field(for: \.updatedAt, type: .datetime)
 
-            builder.field(for: \.password)
+            builder.field(for: \.deletedAt, type: .datetime)
         }
     }
 }

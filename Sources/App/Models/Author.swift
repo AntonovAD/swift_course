@@ -14,6 +14,16 @@ final class Author: MySQLModel {
     var user: Parent<Author, User> {
         return parent(\.userId)
     }
+
+    // Timestampable
+    static let createdAtKey: TimestampKey? = \.createdAt
+    static let updatedAtKey: TimestampKey? = \.updatedAt
+    var createdAt: Date?
+    var updatedAt: Date?
+
+    // SoftDelete
+    static let deletedAtKey: TimestampKey? = \.deletedAt
+    var deletedAt: Date?
 }
 
 extension Author: Migration {
@@ -21,11 +31,16 @@ extension Author: Migration {
         return Database.create(self, on: connection) { builder in
             builder.field(for: \.id, isIdentifier: true)
 
-            builder.field(for: \.lname)
-            builder.field(for: \.fname)
+            builder.field(for: \.lname, type: .varchar(255), .notNull)
+            builder.field(for: \.fname, type: .varchar(255), .notNull)
 
             builder.field(for: \.userId)
             builder.reference(from: \.userId, to: \User.id)
+
+            builder.field(for: \.createdAt, type: .datetime, .default(.function("CURRENT_TIMESTAMP")))
+            builder.field(for: \.updatedAt, type: .datetime)
+
+            builder.field(for: \.deletedAt, type: .datetime)
         }
     }
 }
