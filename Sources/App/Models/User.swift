@@ -1,14 +1,28 @@
-import FluentSQLite
+import FluentMySQL
 import Foundation
 
-final class User: SQLiteModel {
-    typealias Database = SQLiteDatabase
+final class User: MySQLModel {
+    typealias Database = MySQLDatabase
 
     var id: Int?
 
-    var authorId: Author.ID
+    var name: String
+    var email: String
+    var password: String
+}
 
-    var author: Parent<User, Author> {
-        return parent(\.authorId)
+extension User: Migration {
+    static func prepare(on connection: MySQLConnection) -> Future<Void> {
+        return Database.create(self, on: connection) { builder in
+            builder.field(for: \.id, isIdentifier: true)
+
+            builder.field(for: \.name)
+            builder.unique(on: \.name)
+
+            builder.field(for: \.email)
+            builder.unique(on: \.email)
+
+            builder.field(for: \.password)
+        }
     }
 }
