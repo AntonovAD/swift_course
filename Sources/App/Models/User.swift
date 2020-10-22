@@ -30,9 +30,11 @@ extension User: Migration {
             builder.field(for: \.email, type: .varchar(255), .notNull, .unique())
             builder.field(for: \.password, type: .varchar(255), .notNull)
 
+            // Timestampable
             builder.field(for: \.createdAt, type: .datetime, .default(.function("CURRENT_TIMESTAMP")))
             builder.field(for: \.updatedAt, type: .datetime)
 
+            // SoftDelete
             builder.field(for: \.deletedAt, type: .datetime)
         }
     }

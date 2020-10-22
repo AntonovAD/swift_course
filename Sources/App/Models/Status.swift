@@ -1,18 +1,12 @@
 import FluentMySQL
 import Foundation
 
-final class Author: MySQLModel {
+final class Status: MySQLModel {
     typealias Database = MySQLDatabase
 
     var id: Int?
 
-    var lname: String
-    var fname: String
-
-    var userId: User.ID
-    var user: Parent<Author, User> {
-        return parent(\.userId)
-    }
+    var name: String
 
     // Timestampable
     static let createdAtKey: TimestampKey? = \.createdAt
@@ -25,16 +19,12 @@ final class Author: MySQLModel {
     var deletedAt: Date?
 }
 
-extension Author: Migration {
+extension Status: Migration {
     static func prepare(on connection: MySQLConnection) -> Future<Void> {
         return Database.create(self, on: connection) { builder in
             builder.field(for: \.id, isIdentifier: true)
 
-            builder.field(for: \.lname, type: .varchar(255), .notNull)
-            builder.field(for: \.fname, type: .varchar(255), .notNull)
-
-            builder.field(for: \.userId)
-            builder.reference(from: \.userId, to: \User.id)
+            builder.field(for: \.name, type: .varchar(255))
 
             // Timestampable
             builder.field(for: \.createdAt, type: .datetime, .default(.function("CURRENT_TIMESTAMP")))
