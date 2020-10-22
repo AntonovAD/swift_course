@@ -1,5 +1,5 @@
 import FluentMySQL
-import Foundation
+import Vapor
 
 final class User: MySQLModel {
     typealias Database = MySQLDatabase
@@ -9,6 +9,10 @@ final class User: MySQLModel {
     var name: String
     var email: String
     var password: String
+
+    var author: Children<User, Author> {
+        return children(\.userId)
+    }
 
     // Timestampable
     static let createdAtKey: TimestampKey? = \.createdAt

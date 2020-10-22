@@ -1,5 +1,5 @@
 import FluentMySQL
-import Foundation
+import Vapor
 
 final class Author: MySQLModel {
     typealias Database = MySQLDatabase
