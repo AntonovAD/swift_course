@@ -8,6 +8,19 @@ final class Comment: MySQLModel {
 
     var message: String
 
+    var post: Siblings<Comment, Post, PostCommentPivot> {
+        return self.siblings()
+    }
+
+    var authorId: Author.ID
+    var author: Parent<Comment, Author> {
+        return self.parent(\.authorId)
+    }
+
+    var opinions: Siblings<Comment, Author, CommentOpinionPivot> {
+        return self.siblings()
+    }
+
     // Timestampable
     static let createdAtKey: TimestampKey? = \.createdAt
     static let updatedAtKey: TimestampKey? = \.updatedAt
@@ -25,6 +38,9 @@ extension Comment: Migration {
             builder.field(for: \.id, isIdentifier: true)
 
             builder.field(for: \.message, type: .text, .notNull())
+
+            builder.field(for: \.authorId)
+            builder.reference(from: \.authorId, to: \Author.id)
 
             // Timestampable
             builder.field(for: \.createdAt, type: .datetime, .default(.function("CURRENT_TIMESTAMP")))

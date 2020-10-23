@@ -27,6 +27,12 @@ final class Post: MySQLModel {
         return self.siblings()
     }
 
+    var comments: Siblings<Post, Comment, PostCommentPivot> {
+        return self.siblings()
+    }
+
+    // TODO var popularComment
+
     // Timestampable
     static let createdAtKey: TimestampKey? = \.createdAt
     static let updatedAtKey: TimestampKey? = \.updatedAt

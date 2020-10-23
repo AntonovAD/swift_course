@@ -14,7 +14,19 @@ final class Author: MySQLModel {
         return self.parent(\.userId)
     }
 
+    var posts: Children<Author, Post> {
+        return self.children(\.authorId)
+    }
+
     var postOpinions: Siblings<Author, Post, PostOpinionPivot> {
+        return self.siblings()
+    }
+
+    var comments: Children<Author, Comment> {
+        return self.children(\.authorId)
+    }
+
+    var commentOpinions: Siblings<Author, Comment, CommentOpinionPivot> {
         return self.siblings()
     }
 

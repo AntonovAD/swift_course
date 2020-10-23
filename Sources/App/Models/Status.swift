@@ -17,6 +17,11 @@ final class Status: MySQLModel {
     // SoftDelete
     static let deletedAtKey: TimestampKey? = \.deletedAt
     var deletedAt: Date?
+
+    enum EnumStatus: Int {
+        case PUBLISHED = 1
+        case DRAFT = 2
+    }
 }
 
 extension Status: Migration {
