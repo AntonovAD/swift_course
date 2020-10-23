@@ -6,7 +6,7 @@ public func routes(_ router: Router) throws {
     router.get { req in
         return "It works!"
     }
-    
+
     // Basic "Hello, world!" example
     router.get("hello") { req in
         return "Hello, world!"
@@ -21,6 +21,10 @@ public func routes(_ router: Router) throws {
     let authorized = router.grouped(AuthMiddleware())
 
     let userController = UserController()
+
+    router.group("user") { (router: Router) -> () in
+        router.post("login", use: userController.signIn)
+    }
 
     authorized.group("user") { (router: Router) -> () in
         router.get("get", use: userController.getUser)
