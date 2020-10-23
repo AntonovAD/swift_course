@@ -42,6 +42,8 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     migrations.add(model: User.self, database: .mysql)
     migrations.add(model: Author.self, database: .mysql)
     migrations.add(model: Status.self, database: .mysql)
+    migrations.add(model: Tag.self, database: .mysql)
     migrations.add(model: Post.self, database: .mysql)
+    migrations.add(model: PostTagPivot.self, database: .mysql)
     services.register(migrations)
 }

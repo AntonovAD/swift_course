@@ -1,26 +1,15 @@
 import FluentMySQL
 import Vapor
 
-final class Post: MySQLModel {
+final class Tag: MySQLModel {
     typealias Database = MySQLDatabase
 
     var id: Int?
 
-    var title: String
-    var text: String
+    var name: String
 
-    var statusId: Status.ID
-    var status: Parent<Post, Status> {
-        return self.parent(\.statusId)
-    }
-
-    var tags: Siblings<Post, Tag, PostTagPivot> {
+    var posts: Siblings<Tag, Post, PostTagPivot> {
         return self.siblings()
-    }
-
-    var authorId: Author.ID
-    var author: Parent<Post, Author> {
-        return self.parent(\.authorId)
     }
 
     // Timestampable
@@ -34,19 +23,12 @@ final class Post: MySQLModel {
     var deletedAt: Date?
 }
 
-extension Post: Migration {
+extension Tag: Migration {
     static func prepare(on connection: MySQLConnection) -> Future<Void> {
         return Database.create(self, on: connection) { builder in
             builder.field(for: \.id, isIdentifier: true)
 
-            builder.field(for: \.title, type: .varchar(255))
-            builder.field(for: \.text, type: .text)
-
-            builder.field(for: \.statusId)
-            builder.reference(from: \.statusId, to: \Status.id)
-
-            builder.field(for: \.authorId)
-            builder.reference(from: \.authorId, to: \Author.id)
+            builder.field(for: \.name, type: .varchar(255), .notNull())
 
             // Timestampable
             builder.field(for: \.createdAt, type: .datetime, .default(.function("CURRENT_TIMESTAMP")))
