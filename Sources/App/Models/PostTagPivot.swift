@@ -2,6 +2,8 @@ import FluentMySQL
 import Vapor
 
 final class PostTagPivot: MySQLPivot {
+    static var name: String = "Post_Tag"
+
     typealias Left = Post
     typealias Right = Tag
 

@@ -47,5 +47,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     migrations.add(model: PostTagPivot.self, database: .mysql)
     migrations.add(model: PostOpinionPivot.self, database: .mysql)
     migrations.add(model: Comment.self, database: .mysql)
+    migrations.add(model: PostCommentPivot.self, database: .mysql)
+    migrations.add(model: CommentOpinionPivot.self, database: .mysql)
     services.register(migrations)
 }
