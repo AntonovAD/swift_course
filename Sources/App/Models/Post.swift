@@ -23,6 +23,10 @@ final class Post: MySQLModel {
         return self.parent(\.authorId)
     }
 
+    var opinions: Siblings<Post, Author, PostOpinionPivot> {
+        return self.siblings()
+    }
+
     // Timestampable
     static let createdAtKey: TimestampKey? = \.createdAt
     static let updatedAtKey: TimestampKey? = \.updatedAt

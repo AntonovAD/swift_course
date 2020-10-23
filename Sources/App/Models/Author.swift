@@ -14,6 +14,10 @@ final class Author: MySQLModel {
         return self.parent(\.userId)
     }
 
+    var postOpinions: Siblings<Author, Post, PostOpinionPivot> {
+        return self.siblings()
+    }
+
     // Timestampable
     static let createdAtKey: TimestampKey? = \.createdAt
     static let updatedAtKey: TimestampKey? = \.updatedAt

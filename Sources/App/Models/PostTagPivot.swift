@@ -3,16 +3,13 @@ import Vapor
 
 final class PostTagPivot: MySQLPivot {
     typealias Left = Post
-
     typealias Right = Tag
 
     var id: Int?
 
     var postId: Post.ID
-    var tagId: Tag.ID
-
     static var leftIDKey: LeftIDKey = \PostTagPivot.postId
-
+    var tagId: Tag.ID
     static var rightIDKey: RightIDKey = \PostTagPivot.tagId
 }
 
