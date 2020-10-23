@@ -11,12 +11,12 @@ final class Post: MySQLModel {
 
     var statusId: Status.ID
     var status: Parent<Post, Status> {
-        return parent(\.statusId)
+        return self.parent(\.statusId)
     }
 
     var authorId: Author.ID
     var author: Parent<Post, Author> {
-        return parent(\.authorId)
+        return self.parent(\.authorId)
     }
 
     // Timestampable

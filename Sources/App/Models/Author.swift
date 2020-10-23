@@ -11,7 +11,7 @@ final class Author: MySQLModel {
 
     var userId: User.ID
     var user: Parent<Author, User> {
-        return parent(\.userId)
+        return self.parent(\.userId)
     }
 
     // Timestampable

@@ -11,7 +11,7 @@ final class User: MySQLModel {
     var password: String
 
     var author: Children<User, Author> {
-        return children(\.userId)
+        return self.children(\.userId)
     }
 
     // Timestampable
