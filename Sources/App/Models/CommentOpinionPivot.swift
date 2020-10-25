@@ -4,6 +4,8 @@ import Vapor
 final class CommentOpinionPivot: MySQLPivot {
     static var name: String = "Comment_Opinion"
 
+    typealias Database = MySQLDatabase
+
     typealias Left = Comment
     typealias Right = Author
 

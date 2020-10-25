@@ -24,9 +24,15 @@ final class UserController {
             }
 
             return map(futureUser, futureAuthor) { (user: User, author: Author?) -> UserResource<AuthorResource> in
+                var authorResource: AuthorResource?
+                if let author = author {
+                    authorResource = AuthorResource(author)
+                } else {
+                    authorResource = nil
+                }
                 return UserResource(
                         user,
-                        author: author !== nil ? AuthorResource(author!) : nil
+                        author: authorResource
                 )
             }
         }

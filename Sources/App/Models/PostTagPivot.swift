@@ -4,6 +4,8 @@ import Vapor
 final class PostTagPivot: MySQLPivot {
     static var name: String = "Post_Tag"
 
+    typealias Database = MySQLDatabase
+
     typealias Left = Post
     typealias Right = Tag
 
