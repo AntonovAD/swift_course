@@ -7,7 +7,7 @@ class UserService {
                 .filter(\.name == login)
                 .filter(\.password == password)
                 .first()
-                .unwrap(or: EnumUserError.notFound)
+                .unwrap(or: UserError.notFound)
                 .map { (user: User) -> AuthResource in
                     return AuthResource(
                             result: true,
@@ -17,7 +17,7 @@ class UserService {
     }
 
     static func authorization(conn: MySQLConnection, userId: Int) throws -> Future<User> {
-        return User.find(userId, on: conn).unwrap(or: EnumUserError.notFound)
+        return User.find(userId, on: conn).unwrap(or: UserError.notFound)
     }
 
     static func getUser(conn: MySQLConnection, userId: Int) throws -> Future<User> {
