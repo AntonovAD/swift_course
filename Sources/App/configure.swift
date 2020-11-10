@@ -8,6 +8,9 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     try services.register(FluentSQLiteProvider())
     try services.register(FluentMySQLProvider())
 
+    // Register app services
+    services.register(UserService.self)
+
     // Register routes to the router
     let router = EngineRouter.default()
     try routes(router)

@@ -1,5 +1,5 @@
 import Foundation
 
-enum UserError: Error {
+enum UserError: AppError {
     case notFound
 }

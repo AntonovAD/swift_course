@@ -18,15 +18,19 @@ public func routes(_ router: Router) throws {
     router.post("todos", use: todoController.create)
     router.delete("todos", Todo.parameter, use: todoController.delete)
 
-    let authorized = router.grouped(AuthMiddleware())
+    let errorable = router.grouped(AppErrorMiddleware())
 
     let userController = UserController()
 
-    router.group("user") { (router: Router) -> () in
-        router.post("login", use: userController.signIn)
-    }
+    errorable.group("api") { (router: Router) -> () in
+        let authorized = router.grouped(AuthMiddleware())
 
-    authorized.group("user") { (router: Router) -> () in
-        router.get("get", use: userController.getUser)
+        router.group("user") { (router: Router) -> () in
+            router.post("login", use: userController.signIn)
+        }
+
+        authorized.group("user") { (router: Router) -> () in
+            router.get("get", use: userController.getUser)
+        }
     }
 }
