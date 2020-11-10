@@ -1,8 +1,12 @@
 import FluentMySQL
 import Vapor
 
-class UserService {
-    static func authentication(conn: MySQLConnection, login: String, password: String) throws -> Future<AuthResource> {
+final class UserService: ServiceType {
+    static func makeService(for container: Container) throws -> UserService {
+        return UserService()
+    }
+
+    func authentication(conn: MySQLConnection, login: String, password: String) throws -> Future<AuthResource> {
         return User.query(on: conn)
                 .filter(\.name == login)
                 .filter(\.password == password)
@@ -16,15 +20,15 @@ class UserService {
                 }
     }
 
-    static func authorization(conn: MySQLConnection, userId: Int) throws -> Future<User> {
+    func authorization(conn: MySQLConnection, userId: Int) throws -> Future<User> {
         return User.find(userId, on: conn).unwrap(or: UserError.notFound)
     }
 
-    static func getUser(conn: MySQLConnection, userId: Int) throws -> Future<User> {
-        return try UserService.authorization(conn: conn, userId: userId)
+    func getUser(conn: MySQLConnection, userId: Int) throws -> Future<User> {
+        return try self.authorization(conn: conn, userId: userId)
     }
 
-    static func getUserAuthor(conn: MySQLConnection, user: User) throws -> Future<Author?> {
+    func getUserAuthor(conn: MySQLConnection, user: User) throws -> Future<Author?> {
         return try user.author.query(on: conn).first()
     }
 }

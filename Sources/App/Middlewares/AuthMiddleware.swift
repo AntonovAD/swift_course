@@ -1,12 +1,18 @@
 import FluentMySQL
 import Vapor
 
-class AuthMiddleware: Middleware {
+final class AuthMiddleware: Middleware, ServiceType {
+    static func makeService(for container: Container) throws -> AuthMiddleware {
+        return AuthMiddleware()
+    }
+
     func respond(to request: Request, chainingTo next: Responder) throws -> EventLoopFuture<Response> {
+        let userService: UserService = try request.make(UserService.self)
+
         return request.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> EventLoopFuture<Response> in
             let userId: Int = try AuthMiddleware.getAuthHeader(request)
             do {
-                return try UserService.authorization(conn: conn, userId: userId).flatMap { (user: User) -> EventLoopFuture<Response> in
+                return try userService.authorization(conn: conn, userId: userId).flatMap { (user: User) -> EventLoopFuture<Response> in
                     return try next.respond(to: request)
                 }
             } catch {
