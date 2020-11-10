@@ -21,6 +21,7 @@ public func routes(_ router: Router) throws {
     let errorable = router.grouped(AppErrorMiddleware())
 
     let userController = UserController()
+    let authorController = AuthorController()
 
     errorable.group("api") { (router: Router) -> () in
         let authorized = router.grouped(AuthMiddleware())
@@ -31,6 +32,10 @@ public func routes(_ router: Router) throws {
 
         authorized.group("user") { (router: Router) -> () in
             router.get("get", use: userController.getUser)
+        }
+
+        authorized.group("author") { (router: Router) -> () in
+            router.get("get", use: authorController.getAuthor)
         }
     }
 }

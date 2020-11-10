@@ -16,25 +16,25 @@ final class UserController {
         }
     }
 
-    func getUser(_ req: Request) throws -> Future<UserResource<AuthorResource>> {
+    func getUser(_ req: Request) throws -> Future<UserWithAuthorResource<AuthorResource>> {
         let userService: UserService = try req.make(UserService.self)
 
         let userId = try AuthMiddleware.getAuthHeader(req)
 
-        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<UserResource<AuthorResource>> in
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<UserWithAuthorResource<AuthorResource>> in
             let futureUser: Future<User> = try userService.getUser(conn: conn, userId: userId)
             let futureAuthor: Future<Author?> = futureUser.flatMap { (user: User) -> Future<Author?> in
                 return try userService.getUserAuthor(conn: conn, user: user)
             }
 
-            return map(futureUser, futureAuthor) { (user: User, author: Author?) -> UserResource<AuthorResource> in
+            return map(futureUser, futureAuthor) { (user: User, author: Author?) -> UserWithAuthorResource<AuthorResource> in
                 var authorResource: AuthorResource?
                 if let author = author {
                     authorResource = AuthorResource(author)
                 } else {
                     authorResource = nil
                 }
-                return UserResource(
+                return UserWithAuthorResource(
                         user,
                         author: authorResource
                 )
