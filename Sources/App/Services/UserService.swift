@@ -2,8 +2,8 @@ import FluentMySQL
 import Vapor
 
 final class UserService: ServiceType {
-    static func makeService(for container: Container) throws -> UserService {
-        return UserService()
+    static func makeService(for container: Container) throws -> Self {
+        return Self()
     }
 
     func authentication(conn: MySQLConnection, login: String, password: String) throws -> Future<AuthResource> {

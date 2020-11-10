@@ -22,6 +22,7 @@ public func routes(_ router: Router) throws {
 
     let userController = UserController()
     let authorController = AuthorController()
+    let postController = PostController()
 
     errorable.group("api") { (router: Router) -> () in
         let authorized = router.grouped(AuthMiddleware())
@@ -36,6 +37,11 @@ public func routes(_ router: Router) throws {
 
         authorized.group("author") { (router: Router) -> () in
             router.get("get", use: authorController.getAuthor)
+        }
+
+        authorized.group("post") { (router: Router) -> () in
+            router.get("get/posts/recent", use: postController.getRecentPosts)
+            router.post("get/posts/recent", use: postController.getRecentPosts)
         }
     }
 }

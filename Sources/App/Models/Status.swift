@@ -18,7 +18,7 @@ final class Status: MySQLModel {
     static let deletedAtKey: TimestampKey? = \.deletedAt
     var deletedAt: Date?
 
-    enum EnumStatus: Int {
+    enum EnumStatus: Status.ID {
         case PUBLISHED = 1
         case DRAFT = 2
     }

@@ -2,8 +2,8 @@ import FluentMySQL
 import Vapor
 
 final class AuthorService: ServiceType {
-    static func makeService(for container: Container) throws -> AuthorService {
-        return AuthorService()
+    static func makeService(for container: Container) throws -> Self {
+        return Self()
     }
 
     func getAuthorByUserId(conn: MySQLConnection, userId: Int) throws -> Future<Author> {
