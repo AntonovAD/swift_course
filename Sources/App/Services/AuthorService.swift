@@ -6,7 +6,7 @@ final class AuthorService: ServiceType {
         return Self()
     }
 
-    func getAuthorByUserId(conn: MySQLConnection, userId: Int) throws -> Future<Author> {
+    func getAuthorByUserId(conn: MySQLConnection, userId: User.ID) throws -> Future<Author> {
         return Author.query(on: conn)
             .filter(\.userId == userId)
             .first()

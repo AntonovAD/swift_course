@@ -42,6 +42,7 @@ public func routes(_ router: Router) throws {
         authorized.group("post") { (router: Router) -> () in
             router.get("get/posts/recent", use: postController.getRecentPosts)
             router.post("get/posts/recent", use: postController.getRecentPosts)
+            router.post("write/post", use: postController.writePost)
         }
     }
 }

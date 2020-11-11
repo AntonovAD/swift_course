@@ -13,4 +13,19 @@ final class PostService: ServiceType {
                 .sort(\.updatedAt, .descending)
                 .all()
     }
+
+    func writePost(
+            conn: MySQLConnection,
+            authorId: Author.ID,
+            title: String,
+            text: String
+    ) throws -> Future<Bool> {
+        let post: Post = Post(
+            authorId: authorId,
+            title: title,
+            text: text,
+            statusId: Status.EnumStatus.PUBLISHED.rawValue
+        )
+        return post.save(on: conn).map { (post: Post) -> Bool in return true}
+    }
 }

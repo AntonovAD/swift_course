@@ -20,11 +20,11 @@ final class UserService: ServiceType {
                 }
     }
 
-    func authorization(conn: MySQLConnection, userId: Int) throws -> Future<User> {
+    func authorization(conn: MySQLConnection, userId: User.ID) throws -> Future<User> {
         return User.find(userId, on: conn).unwrap(or: UserError.notFound)
     }
 
-    func getUser(conn: MySQLConnection, userId: Int) throws -> Future<User> {
+    func getUser(conn: MySQLConnection, userId: User.ID) throws -> Future<User> {
         return try self.authorization(conn: conn, userId: userId)
     }
 
