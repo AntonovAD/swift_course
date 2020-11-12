@@ -6,12 +6,30 @@ final class PostService: ServiceType {
         return Self()
     }
 
-    func getRecentPosts(conn: MySQLConnection) throws -> Future<[Post]> {
+    func getRecentPosts_Lazy(conn: MySQLConnection) throws -> Future<[Post]> {
         return Post.query(on: conn)
                 .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
                 .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
                 .sort(\.updatedAt, .descending)
                 .all()
+    }
+
+    func getRecentPosts_Eager(conn: MySQLConnection) throws -> Future<[(Post, Status, Author)]> {
+        return Post.query(on: conn)
+                .join(\Status.id, to: \Post.statusId)
+                .join(\Author.id, to: \Post.authorId)
+                .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
+                .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
+                .sort(\.updatedAt, .descending)
+                .alsoDecode(Status.self)
+                .alsoDecode(Author.self)
+                .all()
+                .map { (tuples: [((Post, Status), Author)]) -> [(Post, Status, Author)] in
+                    return tuples.map { tuple in
+                        let ((post, status), author) = tuple
+                        return (post, status, author)
+                    }
+                }
     }
 
     func writePost(
