@@ -43,7 +43,7 @@ public func routes(_ router: Router) throws {
             router.post("get/posts/recent", use: postController.getRecentPosts_PostExtendResource_fetchJoin)
             router.post("write/post", use: postController.writePost)
             router.get("get/drafts", use: postController.getDrafts)
-            router.post("write/draft", use: postController.getDrafts)
+            router.post("write/draft", use: postController.writeDraft)
         }
     }
 }
