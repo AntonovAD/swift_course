@@ -46,4 +46,37 @@ final class PostService: ServiceType {
         )
         return post.save(on: conn).map { (post: Post) -> Bool in return true}
     }
+
+    func getDrafts(conn: MySQLConnection, authorId: Author.ID) throws -> Future<[(Post, Status, Author)]> {
+        return Post.query(on: conn)
+                .join(\Status.id, to: \Post.statusId)
+                .join(\Author.id, to: \Post.authorId)
+                .filter(\.authorId == authorId)
+                .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
+                .sort(\.updatedAt, .descending)
+                .alsoDecode(Status.self)
+                .alsoDecode(Author.self)
+                .all()
+                .map { (tuples: [((Post, Status), Author)]) -> [(Post, Status, Author)] in
+                    return tuples.map { tuple in
+                        let ((post, status), author) = tuple
+                        return (post, status, author)
+                    }
+                }
+    }
+
+    func writeDraft(
+            conn: MySQLConnection,
+            authorId: Author.ID,
+            title: String,
+            text: String
+    ) throws -> Future<Bool> {
+        let post: Post = Post(
+                authorId: authorId,
+                title: title,
+                text: text,
+                statusId: Status.EnumStatus.DRAFT.rawValue
+        )
+        return post.save(on: conn).map { (post: Post) -> Bool in return true}
+    }
 }
