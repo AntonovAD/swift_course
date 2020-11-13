@@ -17,8 +17,8 @@ final class PostTagPivot: MySQLPivot, ModifiablePivot {
     static var rightIDKey: RightIDKey = \PostTagPivot.tagId
 
     init(_ left: Post, _ right: Tag) throws {
-        self.postId = left.id!
-        self.tagId = right.id!
+        self.postId = try left.requireID()
+        self.tagId = try right.requireID()
     }
 }
 

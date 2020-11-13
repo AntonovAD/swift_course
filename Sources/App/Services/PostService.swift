@@ -32,6 +32,34 @@ final class PostService: ServiceType {
                 }
     }
 
+    func getRecentPosts_WithTags_Eager(conn: MySQLConnection) throws -> Future<[(Post, Status, Author, [Tag])]> {
+        return Post.query(on: conn)
+            .join(\Status.id, to: \Post.statusId)
+            .join(\Author.id, to: \Post.authorId)
+            .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
+            .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
+            .sort(\.updatedAt, .descending)
+            .alsoDecode(Status.self)
+            .alsoDecode(Author.self)
+            .all()
+            .map { (tuples: [((Post, Status), Author)]) -> [Future<(Post, Status, Author, [Tag])>] in
+                return try tuples.map { tuple throws -> Future<(Post, Status, Author, [Tag])> in
+                    let ((post, status), author) = tuple
+
+                    let tags: Future<[Tag]> = try post.tags.query(on: conn).all()
+
+                    let futureTuple: Future<(Post, Status, Author, [Tag])> = tags.map { (tags: [Tag]) -> (Post, Status, Author, [Tag]) in
+                        return (post, status, author, tags)
+                    }
+
+                    return futureTuple
+                }
+            }
+            .flatMap { futureTuples in
+                return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
+            }
+    }
+
     func writePost(
             conn: MySQLConnection,
             authorId: Author.ID,
@@ -47,22 +75,32 @@ final class PostService: ServiceType {
         return post.save(on: conn)
     }
 
-    func getDrafts(conn: MySQLConnection, authorId: Author.ID) throws -> Future<[(Post, Status, Author)]> {
+    func getDrafts(conn: MySQLConnection, authorId: Author.ID) throws -> Future<[(Post, Status, Author, [Tag])]> {
         return Post.query(on: conn)
-                .join(\Status.id, to: \Post.statusId)
-                .join(\Author.id, to: \Post.authorId)
-                .filter(\.authorId == authorId)
-                .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
-                .sort(\.updatedAt, .descending)
-                .alsoDecode(Status.self)
-                .alsoDecode(Author.self)
-                .all()
-                .map { (tuples: [((Post, Status), Author)]) -> [(Post, Status, Author)] in
-                    return tuples.map { tuple in
-                        let ((post, status), author) = tuple
-                        return (post, status, author)
+            .join(\Status.id, to: \Post.statusId)
+            .join(\Author.id, to: \Post.authorId)
+            .filter(\.authorId == authorId)
+            .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
+            .sort(\.updatedAt, .descending)
+            .alsoDecode(Status.self)
+            .alsoDecode(Author.self)
+            .all()
+            .map { (tuples: [((Post, Status), Author)]) -> [Future<(Post, Status, Author, [Tag])>] in
+                return try tuples.map { tuple throws -> Future<(Post, Status, Author, [Tag])> in
+                    let ((post, status), author) = tuple
+
+                    let tags: Future<[Tag]> = try post.tags.query(on: conn).all()
+
+                    let futureTuple: Future<(Post, Status, Author, [Tag])> = tags.map { (tags: [Tag]) -> (Post, Status, Author, [Tag]) in
+                        return (post, status, author, tags)
                     }
+
+                    return futureTuple
                 }
+            }
+            .flatMap { futureTuples in
+                return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
+            }
     }
 
     func writeDraft(
@@ -84,6 +122,10 @@ final class PostService: ServiceType {
         let futurePostTagPivot: [Future<PostTagPivot>] = tags.map { (tag: Tag) -> Future<PostTagPivot> in
             return post.tags.attach(tag, on: conn)
         }
+
+        /*let futurePostTagPivot: [Future<PostTagPivot>] = tags.map { (tag: Tag) -> Future<PostTagPivot> in
+            return PostTagPivot(post: post, tag: tag).save(on: conn)
+        }*/
 
         return Future.whenAll(futurePostTagPivot, eventLoop: conn.eventLoop)
                 .map { (pivots: [PostTagPivot]) -> Bool in return true }
