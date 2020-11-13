@@ -8,16 +8,16 @@ final class UserService: ServiceType {
 
     func authentication(conn: MySQLConnection, login: String, password: String) throws -> Future<AuthResource> {
         return User.query(on: conn)
-                .filter(\.name == login)
-                .filter(\.password == password)
-                .first()
-                .unwrap(or: UserError.notFound)
-                .map { (user: User) -> AuthResource in
-                    return AuthResource(
-                            result: true,
-                            userId: user.id
-                    )
-                }
+            .filter(\.name == login)
+            .filter(\.password == password)
+            .first()
+            .unwrap(or: UserError.notFound)
+            .map { (user: User) -> AuthResource in
+                return AuthResource(
+                    result: true,
+                    userId: user.id
+                )
+            }
     }
 
     func authorization(conn: MySQLConnection, userId: User.ID) throws -> Future<User> {

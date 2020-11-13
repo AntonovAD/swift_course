@@ -14,8 +14,8 @@ final class AuthorController {
 
             return map(futureUser, futureAuthor) { (user: User, author: Author) -> AuthorWithUserResource<UserResource> in
                 return AuthorWithUserResource(
-                        author,
-                        user: UserResource(user)
+                    author,
+                    user: UserResource(user)
                 )
             }
         }

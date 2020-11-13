@@ -29,10 +29,10 @@ final class PostController {
 
                     return map(futurePostStatus, futurePostAuthor) { (status: Status, author: Author) -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
                         return PostExtendResource(
-                                post,
-                                status: StatusResource(status),
-                                author: AuthorResource(author),
-                                tags: nil
+                            post,
+                            status: StatusResource(status),
+                            author: AuthorResource(author),
+                            tags: nil
                         )
                     }
                 }, eventLoop: req.eventLoop)
@@ -49,10 +49,10 @@ final class PostController {
             return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
                 return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
                     return PostExtendResource(
-                            post,
-                            status: StatusResource(status),
-                            author: AuthorResource(author),
-                            tags: tags.map(TagResource.init)
+                        post,
+                        status: StatusResource(status),
+                        author: AuthorResource(author),
+                        tags: tags.map(TagResource.init)
                     )
                 }
             }
@@ -78,10 +78,10 @@ final class PostController {
                     }
 
                     let futurePost: Future<Post> = try postService.writePost(
-                            conn: conn,
-                            authorId: authorId,
-                            title: body.title,
-                            text: body.text
+                        conn: conn,
+                        authorId: authorId,
+                        title: body.title,
+                        text: body.text
                     )
 
                     let futureTag: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)
@@ -116,10 +116,10 @@ final class PostController {
                 return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
                     return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
                         return PostExtendResource(
-                                post,
-                                status: StatusResource(status),
-                                author: AuthorResource(author),
-                                tags: tags.map(TagResource.init)
+                            post,
+                            status: StatusResource(status),
+                            author: AuthorResource(author),
+                            tags: tags.map(TagResource.init)
                         )
                     }
                 }
@@ -146,10 +146,10 @@ final class PostController {
                     }
 
                     let futurePost: Future<Post> = try postService.writeDraft(
-                            conn: conn,
-                            authorId: authorId,
-                            title: body.title,
-                            text: body.text
+                        conn: conn,
+                        authorId: authorId,
+                        title: body.title,
+                        text: body.text
                     )
 
                     let futureTag: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)

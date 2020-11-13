@@ -8,9 +8,9 @@ final class UserController {
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<AuthResource> in
             return try req.content.decode(AuthRequest.self).flatMap { (body: AuthRequest) -> Future<AuthResource> in
                 return try userService.authentication(
-                        conn: conn,
-                        login: body.login,
-                        password: body.password
+                    conn: conn,
+                    login: body.login,
+                    password: body.password
                 )
             }
         }
@@ -35,8 +35,8 @@ final class UserController {
                     authorResource = nil
                 }
                 return UserWithAuthorResource(
-                        user,
-                        author: authorResource
+                    user,
+                    author: authorResource
                 )
             }
         }

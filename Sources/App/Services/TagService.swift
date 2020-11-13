@@ -9,8 +9,8 @@ final class TagService: ServiceType {
     func mergeTags(conn: MySQLConnection, tags: [String]) throws -> Future<[Tag]> {
         let futureTags: [Future<Tag>] = tags.map { item -> Future<Tag> in
             let futureTag: Future<Tag?> = Tag.query(on: conn)
-                    .filter(\.name == item)
-                    .first()
+                .filter(\.name == item)
+                .first()
 
             return futureTag.flatMap { (tag: Tag?) -> Future<Tag> in
                 var mergeTag: Tag
@@ -21,8 +21,8 @@ final class TagService: ServiceType {
                 }
 
                 return Tag.query(on: conn)
-                        .create(orUpdate: true, mergeTag)
-                        .save(on: conn)
+                    .create(orUpdate: true, mergeTag)
+                    .save(on: conn)
             }
         }
 
