@@ -21,6 +21,14 @@ final class Tag: MySQLModel {
     // SoftDelete
     static let deletedAtKey: TimestampKey? = \.deletedAt
     var deletedAt: Date?
+
+    init(
+        id: Tag.ID?,
+        name: String
+    ) {
+        self.id = id
+        self.name = name
+    }
 }
 
 extension Tag: Migration {

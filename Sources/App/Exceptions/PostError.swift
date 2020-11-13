@@ -1,5 +1,5 @@
 import Vapor
 
-enum UserError: AppError {
+enum PostError: AppError {
     case notFound
 }
