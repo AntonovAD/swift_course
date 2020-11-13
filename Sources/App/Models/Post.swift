@@ -42,6 +42,18 @@ final class Post: MySQLModel {
     // SoftDelete
     static let deletedAtKey: TimestampKey? = \.deletedAt
     var deletedAt: Date?
+
+    init(
+        authorId: Author.ID,
+        title: String,
+        text: String,
+        statusId: Status.ID
+    ) {
+        self.authorId = authorId
+        self.title = title
+        self.text = text
+        self.statusId = statusId
+    }
 }
 
 extension Post: Migration {
