@@ -37,14 +37,14 @@ final class PostService: ServiceType {
             authorId: Author.ID,
             title: String,
             text: String
-    ) throws -> Future<Bool> {
+    ) throws -> Future<Post> {
         let post: Post = Post(
             authorId: authorId,
             title: title,
             text: text,
             statusId: Status.EnumStatus.PUBLISHED.rawValue
         )
-        return post.save(on: conn).map { (post: Post) -> Bool in return true}
+        return post.save(on: conn)
     }
 
     func getDrafts(conn: MySQLConnection, authorId: Author.ID) throws -> Future<[(Post, Status, Author)]> {

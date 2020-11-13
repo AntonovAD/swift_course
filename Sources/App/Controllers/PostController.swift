@@ -62,11 +62,14 @@ final class PostController {
     func writePost(_ req: Request) throws -> Future<CommonResource> {
         let postService: PostService = try req.make(PostService.self)
         let authorService: AuthorService = try req.make(AuthorService.self)
+        let tagService: TagService = try req.make(TagService.self)
 
         let userId = try AuthMiddleware.getAuthHeader(req)
 
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
             return try req.content.decode(WritePostRequest.self).flatMap { (body: WritePostRequest) -> Future<CommonResource> in
+                try body.validate()
+
                 let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
 
                 return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
@@ -74,15 +77,20 @@ final class PostController {
                         throw AuthorError.notFound
                     }
 
-                    let futureResult: Future<Bool> = try postService.writePost(
+                    let futurePost: Future<Post> = try postService.writePost(
                             conn: conn,
                             authorId: authorId,
                             title: body.title,
                             text: body.text
                     )
 
-                    return futureResult.map { (result: Bool) -> CommonResource in
-                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    let futureTag: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)
+
+                    return flatMap(futurePost, futureTag) { (post: Post, tags: [Tag]) -> Future<CommonResource> in
+                        return postService.attachTags(conn: conn, post: post, tags: tags)
+                            .map { (result: Bool) -> CommonResource in
+                                return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                            }
                     }
                 }
             }
@@ -127,7 +135,7 @@ final class PostController {
         let userId = try AuthMiddleware.getAuthHeader(req)
 
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
-            return try req.content.decode(WriteDraftRequest.self).flatMap { (body: WriteDraftRequest) -> Future<CommonResource> in
+            return try req.content.decode(WritePostRequest.self).flatMap { (body: WritePostRequest) -> Future<CommonResource> in
                 try body.validate()
 
                 let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
@@ -137,20 +145,20 @@ final class PostController {
                         throw AuthorError.notFound
                     }
 
-                    let futurePostResult: Future<Post> = try postService.writeDraft(
+                    let futurePost: Future<Post> = try postService.writeDraft(
                             conn: conn,
                             authorId: authorId,
                             title: body.title,
                             text: body.text
                     )
 
-                    let futureTagResult: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)
+                    let futureTag: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)
 
-                    return flatMap(futurePostResult, futureTagResult) { (post: Post, tags: [Tag]) -> Future<CommonResource> in
+                    return flatMap(futurePost, futureTag) { (post: Post, tags: [Tag]) -> Future<CommonResource> in
                         return postService.attachTags(conn: conn, post: post, tags: tags)
-                        .map { (result: Bool) -> CommonResource in
-                            return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
-                        }
+                            .map { (result: Bool) -> CommonResource in
+                                return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                            }
                     }
                 }
             }
