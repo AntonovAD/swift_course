@@ -45,6 +45,7 @@ public func routes(_ router: Router) throws {
             router.get("get/drafts", use: postController.getDrafts)
             router.post("write/draft", use: postController.writeDraft)
             router.post("publish/draft", use: postController.publishDraft)
+            router.post("edit/draft", use: postController.editDraft)
         }
     }
 }

@@ -160,4 +160,33 @@ final class PostService: ServiceType {
             return true
         }
     }
+
+    func editDraft(
+        conn: MySQLConnection,
+        postId: Post.ID,
+        authorId: Author.ID,
+        title: String,
+        text: String,
+        tags: [Tag]
+    ) throws -> Future<Bool> {
+        let futurePost: Future<Post> = Post.query(on: conn)
+            .filter(\.id == postId)
+            .filter(\.authorId == authorId)
+            .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
+            .first()
+            .unwrap(or: PostError.notFound)
+
+        return futurePost.map { (post: Post) -> Bool in
+            post.title = title
+            post.text = text
+
+            _ = post.save(on: conn)
+
+            _ = post.tags.detachAll(on: conn)
+
+            _ = self.attachTags(conn: conn, post: post, tags: tags)
+
+            return true
+        }
+    }
 }

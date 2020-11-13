@@ -17,16 +17,16 @@ extension WritePostRequest: Validatable, Reflectable {
     }
 }
 
-struct PublishDraftRequest: Resource {
+struct EditPostRequest: Resource {
     let postId: Post.ID
     let title: String
     let text: String
     let tags: [String]
 }
 
-extension PublishDraftRequest: Validatable, Reflectable {
-    static func validations() throws -> Validations<PublishDraftRequest> {
-        var validations = Validations(PublishDraftRequest.self)
+extension EditPostRequest: Validatable, Reflectable {
+    static func validations() throws -> Validations<EditPostRequest> {
+        var validations = Validations(EditPostRequest.self)
         try validations.add(\.tags, "unique") { (tags: [String]) -> Void in
             guard tags.count == Array(Set(tags)).count else { throw ValidationError.notUnique(field: "tags")}
             return

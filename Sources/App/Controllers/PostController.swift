@@ -173,7 +173,7 @@ final class PostController {
         let userId = try AuthMiddleware.getAuthHeader(req)
 
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
-            return try req.content.decode(PublishDraftRequest.self).flatMap { (body: PublishDraftRequest) -> Future<CommonResource> in
+            return try req.content.decode(EditPostRequest.self).flatMap { (body: EditPostRequest) -> Future<CommonResource> in
                 try body.validate()
 
                 let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
@@ -187,6 +187,43 @@ final class PostController {
 
                     return futureTag.flatMap { (tags: [Tag]) -> Future<CommonResource> in
                         return try postService.publishDraft(
+                            conn: conn,
+                            postId: body.postId,
+                            authorId: authorId,
+                            title: body.title,
+                            text: body.text,
+                            tags: tags
+                        ).map { (result: Bool) -> CommonResource in
+                            return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    func editDraft(_ req: Request) throws -> Future<CommonResource> {
+        let postService: PostService = try req.make(PostService.self)
+        let authorService: AuthorService = try req.make(AuthorService.self)
+        let tagService: TagService = try req.make(TagService.self)
+
+        let userId = try AuthMiddleware.getAuthHeader(req)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
+            return try req.content.decode(EditPostRequest.self).flatMap { (body: EditPostRequest) -> Future<CommonResource> in
+                try body.validate()
+
+                let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
+
+                return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
+                    guard let authorId: Author.ID = author.id else {
+                        throw AuthorError.notFound
+                    }
+
+                    let futureTag: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)
+
+                    return futureTag.flatMap { (tags: [Tag]) -> Future<CommonResource> in
+                        return try postService.editDraft(
                             conn: conn,
                             postId: body.postId,
                             authorId: authorId,
