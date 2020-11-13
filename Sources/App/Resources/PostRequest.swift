@@ -34,3 +34,7 @@ extension EditPostRequest: Validatable, Reflectable {
         return validations
     }
 }
+
+struct DeletePostRequest: Resource {
+    let postId: Post.ID
+}

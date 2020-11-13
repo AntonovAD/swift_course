@@ -189,4 +189,23 @@ final class PostService: ServiceType {
             return true
         }
     }
+
+    func deleteDraft(
+        conn: MySQLConnection,
+        postId: Post.ID,
+        authorId: Author.ID
+    ) throws -> Future<Bool> {
+        let futurePost: Future<Post> = Post.query(on: conn)
+            .filter(\.id == postId)
+            .filter(\.authorId == authorId)
+            .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
+            .first()
+            .unwrap(or: PostError.notFound)
+
+        return futurePost.map { (post: Post) -> Bool in
+            _ = post.delete(on: conn)
+
+            return true
+        }
+    }
 }
