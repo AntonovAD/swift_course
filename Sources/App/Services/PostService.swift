@@ -24,15 +24,19 @@ final class PostService: ServiceType {
             .alsoDecode(Status.self)
             .alsoDecode(Author.self)
             .all()
-            .map { (tuples: [((Post, Status), Author)]) -> [(Post, Status, Author)] in
-                return tuples.map { tuple in
-                    let ((post, status), author) = tuple
-                    return (post, status, author)
-                }
-            }
+            .map(self.collectPosts)
     }
 
-    func getRecentPosts_WithTags_Eager(conn: MySQLConnection) throws -> Future<[(Post, Status, Author, [Tag])]> {
+    private func collectPosts(
+        _ tuples: [((Post, Status), Author)]
+    ) -> [(Post, Status, Author)] {
+        return tuples.map { tuple in
+            let ((post, status), author) = tuple
+            return (post, status, author)
+        }
+    }
+
+    func getRecentPosts_withTags_Eager(conn: MySQLConnection) throws -> Future<[(Post, Status, Author, [Tag])]> {
         return Post.query(on: conn)
             .join(\Status.id, to: \Post.statusId)
             .join(\Author.id, to: \Post.authorId)
@@ -42,22 +46,80 @@ final class PostService: ServiceType {
             .alsoDecode(Status.self)
             .alsoDecode(Author.self)
             .all()
-            .map { (tuples: [((Post, Status), Author)]) -> [Future<(Post, Status, Author, [Tag])>] in
-                return try tuples.map { tuple throws -> Future<(Post, Status, Author, [Tag])> in
-                    let ((post, status), author) = tuple
-
-                    let tags: Future<[Tag]> = try post.tags.query(on: conn).all()
-
-                    let futureTuple: Future<(Post, Status, Author, [Tag])> = tags.map { (tags: [Tag]) -> (Post, Status, Author, [Tag]) in
-                        return (post, status, author, tags)
-                    }
-
-                    return futureTuple
-                }
-            }
+            .map { try self.collectPostsWithTags(conn: conn, tuples: $0) }
             .flatMap { futureTuples in
                 return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
             }
+    }
+
+    func getRecentPosts_withTags_byFilters_Eager(
+        conn: MySQLConnection,
+        filters: [[String:String]] = [[String:String]](),
+        orders: [String:String] = [String:String](),
+        tags: [Tag.ID] = [Tag.ID]()
+    ) throws -> Future<[(Post, Status, Author, [Tag])]> {
+        // собираю запрос
+        var queryBuilder: QueryBuilder<MySQLDatabase, Post> = Post.query(on: conn)
+            .join(\Status.id, to: \Post.statusId)
+            .join(\Author.id, to: \Post.authorId)
+
+        // join тегов
+        tags.forEach { tag in
+            //queryBuilder = queryBuilder.filter()
+        }
+
+        // цепляю фильтры
+        queryBuilder = queryBuilder
+            .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
+            .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
+
+        filters.forEach { filter in
+            guard let filter = filter.first else { return }
+            queryBuilder = queryBuilder.filter(custom: .value("\(filter.key) = \(filter.value)"))
+        }
+
+        // цепляю сортировки
+        queryBuilder = queryBuilder.sort(\.updatedAt, .descending)
+
+        orders.forEach { key, value in
+            let byDirection: GenericSQLDirection = {
+                switch value {
+                case "asc":
+                    return .ascending
+                case "desc":
+                    return .descending
+                default:
+                    return .ascending
+                }
+            }()
+            queryBuilder = queryBuilder.sort(.orderBy(.value(value), byDirection))
+        }
+
+        return queryBuilder
+            .alsoDecode(Status.self)
+            .alsoDecode(Author.self)
+            .all()
+            .map { try self.collectPostsWithTags(conn: conn, tuples: $0) }
+            .flatMap { futureTuples in
+                return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
+            }
+    }
+
+    private func collectPostsWithTags(
+        conn: MySQLConnection,
+        tuples: [((Post, Status), Author)]
+    ) throws -> [Future<(Post, Status, Author, [Tag])>] {
+        return try tuples.map { tuple throws -> Future<(Post, Status, Author, [Tag])> in
+            let ((post, status), author) = tuple
+
+            let tags: Future<[Tag]> = try post.tags.query(on: conn).all()
+
+            let futureTuple: Future<(Post, Status, Author, [Tag])> = tags.map { (tags: [Tag]) -> (Post, Status, Author, [Tag]) in
+                return (post, status, author, tags)
+            }
+
+            return futureTuple
+        }
     }
 
     func writePost(

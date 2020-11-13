@@ -44,7 +44,7 @@ final class PostController {
         let postService: PostService = try req.make(PostService.self)
 
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
-            let futurePostTuple: Future<[(Post, Status, Author, [Tag])]> = try postService.getRecentPosts_WithTags_Eager(conn: conn)
+            let futurePostTuple: Future<[(Post, Status, Author, [Tag])]> = try postService.getRecentPosts_withTags_Eager(conn: conn)
 
             return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
                 return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
@@ -54,6 +54,33 @@ final class PostController {
                         author: AuthorResource(author),
                         tags: tags.map(TagResource.init)
                     )
+                }
+            }
+        }
+    }
+
+    func getRecentPosts_PostExtendResource_fetchJoin_byFilters(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> {
+        let postService: PostService = try req.make(PostService.self)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
+            return try req.content.decode(GetPostByFilterRequest.self).flatMap { (body: GetPostByFilterRequest) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
+                try body.validate()
+
+                let futurePostTuple: Future<[(Post, Status, Author, [Tag])]> = try postService.getRecentPosts_withTags_byFilters_Eager(
+                    conn: conn,
+                    filters: body.filters,
+                    orders: body.orders
+                )
+
+                return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
+                    return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
+                        return PostExtendResource(
+                            post,
+                            status: StatusResource(status),
+                            author: AuthorResource(author),
+                            tags: tags.map(TagResource.init)
+                        )
+                    }
                 }
             }
         }
