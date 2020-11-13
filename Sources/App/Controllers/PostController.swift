@@ -127,6 +127,8 @@ final class PostController {
 
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
             return try req.content.decode(WriteDraftRequest.self).flatMap { (body: WriteDraftRequest) -> Future<CommonResource> in
+                try body.validate()
+
                 let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
 
                 return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
