@@ -122,6 +122,7 @@ final class PostController {
     func writeDraft(_ req: Request) throws -> Future<CommonResource> {
         let postService: PostService = try req.make(PostService.self)
         let authorService: AuthorService = try req.make(AuthorService.self)
+        let tagService: TagService = try req.make(TagService.self)
 
         let userId = try AuthMiddleware.getAuthHeader(req)
 
@@ -136,15 +137,20 @@ final class PostController {
                         throw AuthorError.notFound
                     }
 
-                    let futureResult: Future<Bool> = try postService.writeDraft(
+                    let futurePostResult: Future<Post> = try postService.writeDraft(
                             conn: conn,
                             authorId: authorId,
                             title: body.title,
                             text: body.text
                     )
 
-                    return futureResult.map { (result: Bool) -> CommonResource in
-                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    let futureTagResult: Future<[Tag]> = try tagService.mergeTags(conn: conn, tags: body.tags)
+
+                    return flatMap(futurePostResult, futureTagResult) { (post: Post, tags: [Tag]) -> Future<CommonResource> in
+                        return postService.attachTags(conn: conn, post: post, tags: tags)
+                        .map { (result: Bool) -> CommonResource in
+                            return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                        }
                     }
                 }
             }

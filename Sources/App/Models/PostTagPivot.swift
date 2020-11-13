@@ -1,7 +1,7 @@
 import FluentMySQL
 import Vapor
 
-final class PostTagPivot: MySQLPivot {
+final class PostTagPivot: MySQLPivot, ModifiablePivot {
     static var name: String = "Post_Tag"
 
     typealias Database = MySQLDatabase
@@ -15,6 +15,11 @@ final class PostTagPivot: MySQLPivot {
     static var leftIDKey: LeftIDKey = \PostTagPivot.postId
     var tagId: Tag.ID
     static var rightIDKey: RightIDKey = \PostTagPivot.tagId
+
+    init(_ left: Post, _ right: Tag) throws {
+        self.postId = left.id!
+        self.tagId = right.id!
+    }
 }
 
 extension PostTagPivot: Migration {

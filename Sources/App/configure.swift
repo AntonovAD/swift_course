@@ -12,6 +12,7 @@ public func configure(_ config: inout Config, _ env: inout Environment, _ servic
     services.register(UserService.self)
     services.register(AuthorService.self)
     services.register(PostService.self)
+    services.register(TagService.self)
 
     // Register routes to the router
     let router = EngineRouter.default()

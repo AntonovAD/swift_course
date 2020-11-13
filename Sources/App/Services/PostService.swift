@@ -70,13 +70,22 @@ final class PostService: ServiceType {
             authorId: Author.ID,
             title: String,
             text: String
-    ) throws -> Future<Bool> {
+    ) throws -> Future<Post> {
         let post: Post = Post(
                 authorId: authorId,
                 title: title,
                 text: text,
                 statusId: Status.EnumStatus.DRAFT.rawValue
         )
-        return post.save(on: conn).map { (post: Post) -> Bool in return true}
+        return post.save(on: conn)
+    }
+
+    func attachTags(conn: MySQLConnection, post: Post, tags: [Tag]) -> Future<Bool> {
+        let futurePostTagPivot: [Future<PostTagPivot>] = tags.map { (tag: Tag) -> Future<PostTagPivot> in
+            return post.tags.attach(tag, on: conn)
+        }
+
+        return Future.whenAll(futurePostTagPivot, eventLoop: conn.eventLoop)
+                .map { (pivots: [PostTagPivot]) -> Bool in return true }
     }
 }
