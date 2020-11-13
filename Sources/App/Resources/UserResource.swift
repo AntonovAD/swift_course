@@ -1,7 +1,7 @@
 import Vapor
 
 struct UserResource: Resource {
-    let id: Int?
+    let id: User.ID?
     let name: String
     let email: String
     let createdAt: Date?
@@ -19,7 +19,7 @@ struct UserResource: Resource {
 }
 
 struct UserWithAuthorResource<A: Resource>: Resource {
-    let id: Int?
+    let id: User.ID?
     let name: String
     let email: String
     let author: A?

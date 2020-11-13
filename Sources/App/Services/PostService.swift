@@ -128,6 +128,36 @@ final class PostService: ServiceType {
         }*/
 
         return Future.whenAll(futurePostTagPivot, eventLoop: conn.eventLoop)
-                .map { (pivots: [PostTagPivot]) -> Bool in return true }
+            .map { (pivots: [PostTagPivot]) -> Bool in return true }
+    }
+
+    func publishDraft(
+        conn: MySQLConnection,
+        postId: Post.ID,
+        authorId: Author.ID,
+        title: String,
+        text: String,
+        tags: [Tag]
+    ) throws -> Future<Bool> {
+        let futurePost: Future<Post> = Post.query(on: conn)
+            .filter(\.id == postId)
+            .filter(\.authorId == authorId)
+            .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
+            .first()
+            .unwrap(or: PostError.notFound)
+
+        return futurePost.map { (post: Post) -> Bool in
+            post.title = title
+            post.text = text
+            post.statusId = Status.EnumStatus.PUBLISHED.rawValue
+
+            _ = post.save(on: conn)
+
+            _ = post.tags.detachAll(on: conn)
+
+            _ = self.attachTags(conn: conn, post: post, tags: tags)
+
+            return true
+        }
     }
 }
