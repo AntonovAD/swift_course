@@ -320,6 +320,7 @@ final class PostController {
                         conn: conn,
                         postId: body.postId,
                         authorId: authorId,
+                        referenceId: body.referenceId,
                         message: body.message
                     ).map { (result: Bool) -> CommonResource in
                         return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)

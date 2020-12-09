@@ -336,6 +336,7 @@ final class PostService: ServiceType {
         conn: MySQLConnection,
         postId: Post.ID,
         authorId: Author.ID,
+        referenceId: Comment.ID?,
         message: String
     ) throws -> Future<Bool> {
         let futurePost: Future<Post> = Post.query(on: conn)
@@ -350,7 +351,7 @@ final class PostService: ServiceType {
                 id: nil,
                 message: message,
                 authorId: authorId,
-                referenceId: nil
+                referenceId: referenceId
             )
 
             let futureComment: Future<Comment> = Comment.query(on: conn)

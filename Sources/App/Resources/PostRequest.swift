@@ -58,5 +58,6 @@ struct DeletePostRequest: Resource {
 
 struct WritePostCommentRequest: Resource {
     let postId: Post.ID
+    let referenceId: Comment.ID?
     let message: String
 }
