@@ -55,3 +55,8 @@ extension EditPostRequest: Validatable, Reflectable {
 struct DeletePostRequest: Resource {
     let postId: Post.ID
 }
+
+struct WritePostCommentRequest: Resource {
+    let postId: Post.ID
+    let message: String
+}

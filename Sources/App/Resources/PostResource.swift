@@ -22,7 +22,7 @@ struct PostResource: Resource {
     }
 }
 
-struct PostExtendResource<S: Resource, A: Resource, T: Resource>: Resource {
+struct PostExtendResource<S: Resource, A: Resource, T: Resource, C: Resource>: Resource {
     let id: Int?
     let title: String
     let text: String
@@ -31,11 +31,12 @@ struct PostExtendResource<S: Resource, A: Resource, T: Resource>: Resource {
     let authorId: Author.ID
     let author: A
     let tags: [T]
+    let comments: [C]
     let createdAt: Date?
     let updatedAt: Date?
     let deletedAt: Date?
 
-    init(_ post: Post, status: S, author: A, tags: [T]?) {
+    init(_ post: Post, status: S, author: A, tags: [T]? = nil, comments: [C]? = nil) {
         self.id = post.id
         self.title = post.title
         self.text = post.text
@@ -47,6 +48,11 @@ struct PostExtendResource<S: Resource, A: Resource, T: Resource>: Resource {
             self.tags = tags
         } else {
             self.tags = [T]()
+        }
+        if let comments = comments {
+            self.comments = comments
+        } else {
+            self.comments = [C]()
         }
         self.createdAt = post.createdAt
         self.updatedAt = post.updatedAt

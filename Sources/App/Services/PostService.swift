@@ -122,6 +122,51 @@ final class PostService: ServiceType {
         }
     }
 
+    func getRecentPosts_withTags_withComments_Eager(
+        conn: MySQLConnection
+    ) throws -> Future<[(
+        Post,
+        Status,
+        Author,
+        [Tag],
+        [Comment]
+    )]> {
+        return Post.query(on: conn)
+            .join(\Status.id, to: \Post.statusId)
+            .join(\Author.id, to: \Post.authorId)
+            .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
+            .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
+            .sort(\.updatedAt, .descending)
+            .alsoDecode(Status.self)
+            .alsoDecode(Author.self)
+            .all()
+            .map { try self.collectPostsWithTagsWithComments(conn: conn, tuples: $0) }
+            .flatMap { futureTuples in
+                return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
+            }
+    }
+
+    private func collectPostsWithTagsWithComments(
+        conn: MySQLConnection,
+        tuples: [((Post, Status), Author)]
+    ) throws -> [Future<(Post, Status, Author, [Tag], [Comment])>] {
+        let collectOfPostsWithTags: [Future<(Post, Status, Author, [Tag])>] = try self.collectPostsWithTags(conn: conn, tuples: tuples)
+
+        return collectOfPostsWithTags.map { (future: Future<(Post, Status, Author, [Tag])>) -> Future<(Post, Status, Author, [Tag], [Comment])> in
+            return future.flatMap { tuple -> Future<(Post, Status, Author, [Tag], [Comment])> in
+                let (post, status, author, tags) = tuple
+
+                let comments: Future<[Comment]> = try post.comments.query(on: conn).all()
+
+                let futureTuple = comments.map { (comments: [Comment]) -> (Post, Status, Author, [Tag], [Comment]) in
+                    return (post, status, author, tags, comments)
+                }
+
+                return futureTuple
+            }
+        }
+    }
+
     func writePost(
         conn: MySQLConnection,
         authorId: Author.ID,
@@ -269,5 +314,44 @@ final class PostService: ServiceType {
 
             return true
         }
+    }
+
+    func writeComment(
+        conn: MySQLConnection,
+        postId: Post.ID,
+        authorId: Author.ID,
+        message: String
+    ) throws -> Future<Bool> {
+        let futurePost: Future<Post> = Post.query(on: conn)
+            .filter(\.id == postId)
+            .filter(\.authorId == authorId)
+            .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
+            .first()
+            .unwrap(or: PostError.notFound)
+
+        return futurePost.flatMap { (post: Post) -> Future<Bool> in
+            let comment: Comment = Comment(
+                id: nil,
+                message: message,
+                authorId: authorId,
+                referenceId: nil
+            )
+
+            let futureComment: Future<Comment> = Comment.query(on: conn)
+                .create(comment)
+                .save(on: conn)
+
+            return futureComment.map { (comment: Comment) -> Bool in
+                _ = self.attachComment(conn: conn, post: post, comment: comment)
+
+                return true
+            }
+        }
+    }
+
+    func attachComment(conn: MySQLConnection, post: Post, comment: Comment) -> Future<Bool> {
+        let futurePostCommentPivot: Future<PostCommentPivot> = post.comments.attach(comment, on: conn)
+
+        return futurePostCommentPivot.map { (pivot: PostCommentPivot) -> Bool in return true }
     }
 }

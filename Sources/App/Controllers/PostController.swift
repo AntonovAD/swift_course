@@ -16,18 +16,18 @@ final class PostController {
         }
     }
 
-    func getRecentPosts_PostExtendResource_fetchAfter(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> {
+    func getRecentPosts_PostExtendResource_fetchAfter(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> {
         let postService: PostService = try req.make(PostService.self)
 
-        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
             let futurePost: Future<[Post]> = try postService.getRecentPosts_Lazy(conn: conn)
 
-            return futurePost.flatMap { (posts: [Post]) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
-                return Future.whenAll(posts.map { post -> Future<PostExtendResource<StatusResource, AuthorResource, TagResource>> in
+            return futurePost.flatMap { (posts: [Post]) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
+                return Future.whenAll(posts.map { post -> Future<PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>> in
                     let futurePostStatus: Future<Status> = post.status.get(on: conn)
                     let futurePostAuthor: Future<Author> = post.author.get(on: conn)
 
-                    return map(futurePostStatus, futurePostAuthor) { (status: Status, author: Author) -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
+                    return map(futurePostStatus, futurePostAuthor) { (status: Status, author: Author) -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource> in
                         return PostExtendResource(
                             post,
                             status: StatusResource(status),
@@ -40,30 +40,31 @@ final class PostController {
         }
     }
 
-    func getRecentPosts_PostExtendResource_fetchJoin(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> {
+    func getRecentPosts_PostExtendResource_fetchJoin(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> {
         let postService: PostService = try req.make(PostService.self)
 
-        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
-            let futurePostTuple: Future<[(Post, Status, Author, [Tag])]> = try postService.getRecentPosts_withTags_Eager(conn: conn)
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
+            let futurePostTuple: Future<[(Post, Status, Author, [Tag], [Comment])]> = try postService.getRecentPosts_withTags_withComments_Eager(conn: conn)
 
-            return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
-                return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
+            return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag], [Comment])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>] in
+                return tuples.map { post, status, author, tags, comments -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource> in
                     return PostExtendResource(
                         post,
                         status: StatusResource(status),
                         author: AuthorResource(author),
-                        tags: tags.map(TagResource.init)
+                        tags: tags.map(TagResource.init),
+                        comments: comments.map(CommentResource.init)
                     )
                 }
             }
         }
     }
 
-    func getRecentPosts_PostExtendResource_fetchJoin_byFilters(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> {
+    func getRecentPosts_PostExtendResource_fetchJoin_byFilters(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> {
         let postService: PostService = try req.make(PostService.self)
 
-        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
-            return try req.content.decode(GetPostByFilterRequest.self).flatMap { (body: GetPostByFilterRequest) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
+            return try req.content.decode(GetPostByFilterRequest.self).flatMap { (body: GetPostByFilterRequest) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
                 try body.validate()
 
                 let futurePostTuple: Future<[(Post, Status, Author, [Tag])]> = try postService.getRecentPosts_withTags_byFilters_Eager(
@@ -72,8 +73,8 @@ final class PostController {
                     orders: body.orders
                 )
 
-                return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
-                    return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
+                return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>] in
+                    return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource> in
                         return PostExtendResource(
                             post,
                             status: StatusResource(status),
@@ -124,24 +125,24 @@ final class PostController {
         }
     }
 
-    func getDrafts(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> {
+    func getDrafts(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> {
         let postService: PostService = try req.make(PostService.self)
         let authorService: AuthorService = try req.make(AuthorService.self)
 
         let userId = try AuthMiddleware.getAuthHeader(req)
 
-        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
             let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
 
-            return futureAuthor.flatMap { (author: Author) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource>]> in
+            return futureAuthor.flatMap { (author: Author) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
                 guard let authorId: Author.ID = author.id else {
                     throw AuthorError.notFound
                 }
 
                 let futurePostTuple: Future<[(Post, Status, Author, [Tag])]> = try postService.getDrafts(conn: conn, authorId: authorId)
 
-                return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource>] in
-                    return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource> in
+                return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>] in
+                    return tuples.map { post, status, author, tags -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource> in
                         return PostExtendResource(
                             post,
                             status: StatusResource(status),
@@ -285,6 +286,34 @@ final class PostController {
                         conn: conn,
                         postId: body.postId,
                         authorId: authorId
+                    ).map { (result: Bool) -> CommonResource in
+                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    }
+                }
+            }
+        }
+    }
+
+    func writeComment(_ req: Request) throws -> Future<CommonResource> {
+        let postService: PostService = try req.make(PostService.self)
+        let authorService: AuthorService = try req.make(AuthorService.self)
+
+        let userId = try AuthMiddleware.getAuthHeader(req)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
+            return try req.content.decode(WritePostCommentRequest.self).flatMap { (body: WritePostCommentRequest) -> Future<CommonResource> in
+                let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
+
+                return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
+                    guard let authorId: Author.ID = author.id else {
+                        throw AuthorError.notFound
+                    }
+
+                    return try postService.writeComment(
+                        conn: conn,
+                        postId: body.postId,
+                        authorId: authorId,
+                        message: body.message
                     ).map { (result: Bool) -> CommonResource in
                         return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
                     }
