@@ -61,3 +61,12 @@ struct WritePostCommentRequest: Resource {
     let referenceId: Comment.ID?
     let message: String
 }
+
+struct EditPostCommentRequest: Resource {
+    let commentId: Comment.ID
+    let message: String
+}
+
+struct DeletePostCommentRequest: Resource {
+    let commentId: Comment.ID
+}

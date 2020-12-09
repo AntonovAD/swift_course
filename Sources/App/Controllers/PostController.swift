@@ -329,4 +329,59 @@ final class PostController {
             }
         }
     }
+
+    func editComment(_ req: Request) throws -> Future<CommonResource> {
+        let commentService: CommentService = try req.make(CommentService.self)
+        let authorService: AuthorService = try req.make(AuthorService.self)
+
+        let userId = try AuthMiddleware.getAuthHeader(req)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
+            return try req.content.decode(EditPostCommentRequest.self).flatMap { (body: EditPostCommentRequest) -> Future<CommonResource> in
+                let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
+
+                return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
+                    guard let authorId: Author.ID = author.id else {
+                        throw AuthorError.notFound
+                    }
+
+                    return try commentService.editPostComment(
+                        conn: conn,
+                        commentId: body.commentId,
+                        authorId: authorId,
+                        message: body.message
+                    ).map { (result: Bool) -> CommonResource in
+                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    }
+                }
+            }
+        }
+    }
+
+    func deleteComment(_ req: Request) throws -> Future<CommonResource> {
+        let commentService: CommentService = try req.make(CommentService.self)
+        let authorService: AuthorService = try req.make(AuthorService.self)
+
+        let userId = try AuthMiddleware.getAuthHeader(req)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
+            return try req.content.decode(DeletePostCommentRequest.self).flatMap { (body: DeletePostCommentRequest) -> Future<CommonResource> in
+                let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
+
+                return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
+                    guard let authorId: Author.ID = author.id else {
+                        throw AuthorError.notFound
+                    }
+
+                    return try commentService.deletePostComment(
+                        conn: conn,
+                        commentId: body.commentId,
+                        authorId: authorId
+                    ).map { (result: Bool) -> CommonResource in
+                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    }
+                }
+            }
+        }
+    }
 }
