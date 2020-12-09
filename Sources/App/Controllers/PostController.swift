@@ -40,20 +40,27 @@ final class PostController {
         }
     }
 
-    func getRecentPosts_PostExtendResource_fetchJoin(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> {
+    func getRecentPosts_PostExtendResource_fetchJoin(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>]> {
         let postService: PostService = try req.make(PostService.self)
 
-        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>]> in
-            let futurePostTuple: Future<[(Post, Status, Author, [Tag], [Comment])]> = try postService.getRecentPosts_withTags_withComments_Eager(conn: conn)
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>]> in
+            let futurePostTuple: Future<[(Post, Status, Author, [Tag], [(Comment, Author)])]> = try postService.getRecentPosts_withTags_withComments_Eager(conn: conn)
 
-            return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag], [Comment])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource>] in
-                return tuples.map { post, status, author, tags, comments -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentResource> in
+            return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag], [(Comment, Author)])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>] in
+                return tuples.map { tuple -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
+                    let (post, status, author, tags, commentsWithAuthor) = tuple
+
                     return PostExtendResource(
                         post,
                         status: StatusResource(status),
                         author: AuthorResource(author),
                         tags: tags.map(TagResource.init),
-                        comments: comments.map(CommentResource.init)
+                        comments: commentsWithAuthor.map {
+                            return CommentExtendResource<AuthorResource>(
+                                $0.0,
+                                author: AuthorResource($0.1)
+                            )
+                        }
                     )
                 }
             }
