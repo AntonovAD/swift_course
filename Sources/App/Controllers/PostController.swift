@@ -42,27 +42,32 @@ final class PostController {
 
     func getRecentPosts_PostExtendResource_fetchJoin(_ req: Request) throws -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>]> {
         let postService: PostService = try req.make(PostService.self)
+        let commentService: CommentService = try req.make(CommentService.self)
 
         return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>]> in
-            let futurePostTuple: Future<[(Post, Status, Author, [Tag], [(Comment, Author)])]> = try postService.getRecentPosts_withTags_withComments_Eager(conn: conn)
+            let futurePostTuple: Future<[(Post, Status, Author, [Tag], [Comment])]> = try postService.getRecentPosts_withTags_withComments_Eager(conn: conn)
 
-            return futurePostTuple.map { (tuples: [(Post, Status, Author, [Tag], [(Comment, Author)])]) -> [PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>] in
-                return tuples.map { tuple -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
-                    let (post, status, author, tags, commentsWithAuthor) = tuple
+            return futurePostTuple.flatMap { (tuples: [(Post, Status, Author, [Tag], [Comment])]) -> Future<[PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>]> in
+                return try Future.whenAll(tuples.map { tuple -> Future<PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>> in
+                    let (post, status, author, tags, comments) = tuple
 
-                    return PostExtendResource(
-                        post,
-                        status: StatusResource(status),
-                        author: AuthorResource(author),
-                        tags: tags.map(TagResource.init),
-                        comments: commentsWithAuthor.map {
-                            return CommentExtendResource<AuthorResource>(
-                                $0.0,
-                                author: AuthorResource($0.1)
-                            )
-                        }
-                    )
-                }
+                    let futureCommentsWithAuthor: [Future<(Comment, Author)>] = try commentService.getCommentsWithAuthor(conn: conn, comments: comments)
+
+                    return Future.whenAll(futureCommentsWithAuthor, eventLoop: req.eventLoop).map { (commentsWithAuthor: [(Comment, Author)]) -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
+                        return PostExtendResource(
+                            post,
+                            status: StatusResource(status),
+                            author: AuthorResource(author),
+                            tags: tags.map(TagResource.init),
+                            comments: commentsWithAuthor.map {
+                                return CommentExtendResource<AuthorResource>(
+                                    $0.0,
+                                    author: AuthorResource($0.1)
+                                )
+                            }
+                        )
+                    }
+                }, eventLoop: req.eventLoop)
             }
         }
     }

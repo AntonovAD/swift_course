@@ -129,10 +129,7 @@ final class PostService: ServiceType {
         Status,
         Author,
         [Tag],
-        [(
-            Comment,
-            Author
-        )]
+        [Comment]
     )]> {
         return Post.query(on: conn)
             .join(\Status.id, to: \Post.statusId)
@@ -152,33 +149,18 @@ final class PostService: ServiceType {
     private func collectPostsWithTagsWithComments(
         conn: MySQLConnection,
         tuples: [((Post, Status), Author)]
-    ) throws -> [Future<(Post, Status, Author, [Tag], [(Comment, Author)])>] {
+    ) throws -> [Future<(Post, Status, Author, [Tag], [Comment])>] {
         let collectOfPostsWithTags: [Future<(Post, Status, Author, [Tag])>] = try self.collectPostsWithTags(conn: conn, tuples: tuples)
 
-        return collectOfPostsWithTags.map { (future: Future<(Post, Status, Author, [Tag])>) -> Future<(Post, Status, Author, [Tag], [(Comment, Author)])> in
-            return future.flatMap { tuple -> Future<(Post, Status, Author, [Tag], [(Comment, Author)])> in
+        return collectOfPostsWithTags.map { (future: Future<(Post, Status, Author, [Tag])>) -> Future<(Post, Status, Author, [Tag], [Comment])> in
+            return future.flatMap { tuple -> Future<(Post, Status, Author, [Tag], [Comment])> in
                 let (post, status, author, tags) = tuple
 
                 let comments: Future<[Comment]> = try post.comments.query(on: conn).all()
 
-                let futureTuple = comments.flatMap { (comments: [Comment]) -> Future<(Post, Status, Author, [Tag], [(Comment, Author)])> in
-                    let futureCommentsWithAuthor: [Future<(Comment, Author)>] = comments.map { comment -> Future<(Comment, Author)> in
-                        let futureCommentAuthor: Future<Author> = comment.author
-                            .query(on: conn)
-                            .first()
-                            .unwrap(or: AuthorError.notFound)
-
-                        return futureCommentAuthor.map { commentAuthor -> (Comment, Author) in
-                            return (comment, commentAuthor)
-                        }
-                    }
-
-                    return Future.whenAll(futureCommentsWithAuthor, eventLoop: conn.eventLoop).map { (commentsWithAuthor: [(Comment, Author)]) -> (Post, Status, Author, [Tag], [(Comment, Author)]) in
-                        return (post, status, author, tags, commentsWithAuthor)
-                    }
+                return comments.map { (comments: [Comment]) -> (Post, Status, Author, [Tag], [Comment]) in
+                    return (post, status, author, tags, comments)
                 }
-
-                return futureTuple
             }
         }
     }
