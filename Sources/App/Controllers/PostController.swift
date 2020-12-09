@@ -56,22 +56,37 @@ final class PostController {
                     return Future.whenAll(futureCommentsWithAuthor, eventLoop: req.eventLoop).flatMap { (commentsWithAuthor: [(Comment, Author)]) -> Future<PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>> in
                         let futurePostOpinions: Future<(Int, Int)> = try postService.getPostOpinions(conn: conn, post: post)
 
-                        return futurePostOpinions.map { (likes: Int, dislikes: Int) -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
-                            return PostExtendResource(
-                                post,
-                                status: StatusResource(status),
-                                author: AuthorResource(author),
-                                tags: tags.map(TagResource.init),
-                                comments: commentsWithAuthor.map {
-                                    return CommentExtendResource<AuthorResource>(
-                                        $0.0,
-                                        author: AuthorResource($0.1)
-                                    )
-                                },
-                                likes: likes,
-                                dislikes: dislikes
-                            )
+                        let futurePostComments: [Future<CommentExtendResource<AuthorResource>>] = try commentsWithAuthor.map { (commentWithAuthor) throws -> Future<CommentExtendResource<AuthorResource>> in
+                            let futureCommentOpinions: Future<(Int, Int)> = try commentService.getCommentOpinions(conn: conn, comment: commentWithAuthor.0)
+
+                            return futureCommentOpinions.map { (commentOpinions) -> CommentExtendResource<AuthorResource> in
+                                let (comment, commentAuthor) = commentWithAuthor
+                                let (likes, dislikes) = commentOpinions
+
+                                return CommentExtendResource<AuthorResource>(
+                                    comment,
+                                    author: AuthorResource(commentAuthor),
+                                    likes: likes,
+                                    dislikes: dislikes
+                                )
+                            }
                         }
+
+                        return Future.whenAll(futurePostComments, eventLoop: req.eventLoop)
+                            .and(futurePostOpinions)
+                            .map { (postComments, postOpinions) -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
+                                let (likes, dislikes) = postOpinions
+
+                                return PostExtendResource(
+                                    post,
+                                    status: StatusResource(status),
+                                    author: AuthorResource(author),
+                                    tags: tags.map(TagResource.init),
+                                    comments: postComments,
+                                    likes: likes,
+                                    dislikes: dislikes
+                                )
+                            }
                     }
                 }, eventLoop: req.eventLoop)
             }
@@ -412,6 +427,32 @@ final class PostController {
                     return postService.attachOpinion(
                         conn: conn,
                         postId: body.postId,
+                        author: author,
+                        value: body.value
+                    ).map { (result: Bool) -> CommonResource in
+                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    }
+                }
+            }
+        }
+    }
+
+    func ratePostComment(_ req: Request) throws -> Future<CommonResource> {
+        let commentService: CommentService = try req.make(CommentService.self)
+        let authorService: AuthorService = try req.make(AuthorService.self)
+
+        let userId = try AuthMiddleware.getAuthHeader(req)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
+            return try req.content.decode(RatePostCommentRequest.self).flatMap { (body: RatePostCommentRequest) -> Future<CommonResource> in
+                try body.validate()
+
+                let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
+
+                return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
+                    return commentService.attachOpinion(
+                        conn: conn,
+                        commentId: body.commentId,
                         author: author,
                         value: body.value
                     ).map { (result: Bool) -> CommonResource in

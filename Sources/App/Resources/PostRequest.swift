@@ -86,3 +86,19 @@ extension RatePostRequest: Validatable, Reflectable {
         return validations
     }
 }
+
+struct RatePostCommentRequest: Resource {
+    let commentId: Comment.ID
+    let value: Int
+}
+
+extension RatePostCommentRequest: Validatable, Reflectable {
+    static func validations() throws -> Validations<RatePostCommentRequest> {
+        var validations = Validations(RatePostCommentRequest.self)
+        try validations.add(\.value, "in:0,1") { (value: Int) -> Void in
+            guard [0,1].contains(value) else { throw ValidationError.notIn(field: "value")}
+            return
+        }
+        return validations
+    }
+}
