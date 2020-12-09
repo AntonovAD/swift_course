@@ -46,7 +46,7 @@ final class PostService: ServiceType {
             .alsoDecode(Status.self)
             .alsoDecode(Author.self)
             .all()
-            .map { try self.collectPostsWithTags(conn: conn, tuples: $0) }
+            .map { try self.collectPosts_withTags(conn: conn, tuples: $0) }
             .flatMap { futureTuples in
                 return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
             }
@@ -99,13 +99,13 @@ final class PostService: ServiceType {
             .alsoDecode(Status.self)
             .alsoDecode(Author.self)
             .all()
-            .map { try self.collectPostsWithTags(conn: conn, tuples: $0) }
+            .map { try self.collectPosts_withTags(conn: conn, tuples: $0) }
             .flatMap { futureTuples in
                 return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
             }
     }
 
-    private func collectPostsWithTags(
+    private func collectPosts_withTags(
         conn: MySQLConnection,
         tuples: [((Post, Status), Author)]
     ) throws -> [Future<(Post, Status, Author, [Tag])>] {
@@ -140,17 +140,17 @@ final class PostService: ServiceType {
             .alsoDecode(Status.self)
             .alsoDecode(Author.self)
             .all()
-            .map { try self.collectPostsWithTagsWithComments(conn: conn, tuples: $0) }
+            .map { try self.collectPosts_withTags_withComments(conn: conn, tuples: $0) }
             .flatMap { futureTuples in
                 return Future.whenAll(futureTuples, eventLoop: conn.eventLoop)
             }
     }
 
-    private func collectPostsWithTagsWithComments(
+    private func collectPosts_withTags_withComments(
         conn: MySQLConnection,
         tuples: [((Post, Status), Author)]
     ) throws -> [Future<(Post, Status, Author, [Tag], [Comment])>] {
-        let collectOfPostsWithTags: [Future<(Post, Status, Author, [Tag])>] = try self.collectPostsWithTags(conn: conn, tuples: tuples)
+        let collectOfPostsWithTags: [Future<(Post, Status, Author, [Tag])>] = try self.collectPosts_withTags(conn: conn, tuples: tuples)
 
         return collectOfPostsWithTags.map { (future: Future<(Post, Status, Author, [Tag])>) -> Future<(Post, Status, Author, [Tag], [Comment])> in
             return future.flatMap { tuple -> Future<(Post, Status, Author, [Tag], [Comment])> in
@@ -352,5 +352,57 @@ final class PostService: ServiceType {
         let futurePostCommentPivot: Future<PostCommentPivot> = post.comments.attach(comment, on: conn)
 
         return futurePostCommentPivot.map { (pivot: PostCommentPivot) -> Bool in return true }
+    }
+
+    func attachOpinion(conn: MySQLConnection, postId: Post.ID, author: Author, value: Int) -> Future<Bool> {
+        let futurePost: Future<Post> = Post.query(on: conn)
+            .filter(\.id == postId)
+            .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
+            .first()
+            .unwrap(or: PostError.notFound)
+
+        return futurePost.flatMap { (post: Post) -> Future<Bool> in
+            let postOpinionBuilder = try post.opinions.pivots(on: conn)
+                .filter(\.authorId == author.id!)
+
+            let futurePostOpinionCount: Future<Int> = postOpinionBuilder.count()
+            let futurePostOpinionPivot: Future<PostOpinionPivot?> = postOpinionBuilder.first()
+
+            return flatMap(futurePostOpinionCount, futurePostOpinionPivot) { count, pivot -> Future<Bool> in
+                if (count == 1 && pivot?.value == value) {
+                    return post.opinions.detach(author, on: conn).map {
+                        return true
+                    }
+                } else if (count == 1) {
+                    return post.opinions.detach(author, on: conn).flatMap {
+                        return post.opinions.attach(author, on: conn).map { (pivot: PostOpinionPivot) -> Bool in
+                            pivot.value = value
+                            _ = pivot.save(on: conn)
+                            return true
+                        }
+                    }
+                } else {
+                    return post.opinions.attach(author, on: conn).map { (pivot: PostOpinionPivot) -> Bool in
+                        pivot.value = value
+                        _ = pivot.save(on: conn)
+                        return true
+                    }
+                }
+            }
+        }
+    }
+
+    func getPostOpinions(conn: MySQLConnection, post: Post) throws -> Future<(Int, Int)> {
+        let futureLikes: Future<Int> = try post.opinions.pivots(on: conn)
+            .filter(\.value == 1)
+            .count()
+
+        let futureDislikes: Future<Int> = try post.opinions.pivots(on: conn)
+            .filter(\.value == 0)
+            .count()
+
+        return map(futureLikes, futureDislikes) { (likes: Int, dislikes: Int) -> (Int, Int) in
+            return (likes, dislikes)
+        }
     }
 }

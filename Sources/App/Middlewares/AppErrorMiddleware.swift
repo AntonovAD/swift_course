@@ -7,7 +7,7 @@ final class AppErrorMiddleware: Middleware, ServiceType {
 
     func respond(to request: Request, chainingTo next: Responder) throws -> EventLoopFuture<Response> {
         return try next.respond(to: request).catchFlatMap { error in
-            throw Abort(.internalServerError, reason: "\(error)")
+            throw Abort(.internalServerError, reason: "\(type(of: error)): \(error)")
         }
     }
 }

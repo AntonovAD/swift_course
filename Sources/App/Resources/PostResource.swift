@@ -32,11 +32,21 @@ struct PostExtendResource<S: Resource, A: Resource, T: Resource, C: Resource>: R
     let author: A
     let tags: [T]
     let comments: [C]
+    let likes: Int
+    let dislikes: Int
     let createdAt: Date?
     let updatedAt: Date?
     let deletedAt: Date?
 
-    init(_ post: Post, status: S, author: A, tags: [T]? = nil, comments: [C]? = nil) {
+    init(
+        _ post: Post,
+        status: S,
+        author: A,
+        tags: [T]? = nil,
+        comments: [C]? = nil,
+        likes: Int = 0,
+        dislikes: Int = 0
+    ) {
         self.id = post.id
         self.title = post.title
         self.text = post.text
@@ -54,6 +64,8 @@ struct PostExtendResource<S: Resource, A: Resource, T: Resource, C: Resource>: R
         } else {
             self.comments = [C]()
         }
+        self.likes = likes
+        self.dislikes = dislikes
         self.createdAt = post.createdAt
         self.updatedAt = post.updatedAt
         self.deletedAt = post.deletedAt

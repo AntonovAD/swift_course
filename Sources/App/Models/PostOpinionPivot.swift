@@ -1,7 +1,7 @@
 import FluentMySQL
 import Vapor
 
-final class PostOpinionPivot: MySQLPivot {
+final class PostOpinionPivot: MySQLPivot, ModifiablePivot {
     static var name: String = "Post_Opinion"
 
     typealias Database = MySQLDatabase
@@ -16,7 +16,12 @@ final class PostOpinionPivot: MySQLPivot {
     var authorId: Author.ID
     static var rightIDKey: RightIDKey = \PostOpinionPivot.authorId
 
-    var value: Int
+    var value: Int?
+
+    init(_ left: Post, _ right: Author) throws {
+        self.postId = try left.requireID()
+        self.authorId = try right.requireID()
+    }
 }
 
 extension PostOpinionPivot: Migration {

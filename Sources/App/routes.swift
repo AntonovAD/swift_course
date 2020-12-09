@@ -51,6 +51,7 @@ public func routes(_ router: Router) throws {
             router.post("write/post/comment", use: postController.writeComment)
             router.post("edit/post/comment", use: postController.editComment)
             router.post("delete/post/comment", use: postController.deleteComment)
+            router.post("rate/post", use: postController.ratePost)
         }
     }
 }

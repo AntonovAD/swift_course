@@ -16,7 +16,7 @@ final class CommentOpinionPivot: MySQLPivot {
     var authorId: Author.ID
     static var rightIDKey: RightIDKey = \CommentOpinionPivot.authorId
 
-    var value: Int
+    var value: Int?
 }
 
 extension CommentOpinionPivot: Migration {

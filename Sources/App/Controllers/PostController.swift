@@ -53,19 +53,25 @@ final class PostController {
 
                     let futureCommentsWithAuthor: [Future<(Comment, Author)>] = try commentService.getCommentsWithAuthor(conn: conn, comments: comments)
 
-                    return Future.whenAll(futureCommentsWithAuthor, eventLoop: req.eventLoop).map { (commentsWithAuthor: [(Comment, Author)]) -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
-                        return PostExtendResource(
-                            post,
-                            status: StatusResource(status),
-                            author: AuthorResource(author),
-                            tags: tags.map(TagResource.init),
-                            comments: commentsWithAuthor.map {
-                                return CommentExtendResource<AuthorResource>(
-                                    $0.0,
-                                    author: AuthorResource($0.1)
-                                )
-                            }
-                        )
+                    return Future.whenAll(futureCommentsWithAuthor, eventLoop: req.eventLoop).flatMap { (commentsWithAuthor: [(Comment, Author)]) -> Future<PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>>> in
+                        let futurePostOpinions: Future<(Int, Int)> = try postService.getPostOpinions(conn: conn, post: post)
+
+                        return futurePostOpinions.map { (likes: Int, dislikes: Int) -> PostExtendResource<StatusResource, AuthorResource, TagResource, CommentExtendResource<AuthorResource>> in
+                            return PostExtendResource(
+                                post,
+                                status: StatusResource(status),
+                                author: AuthorResource(author),
+                                tags: tags.map(TagResource.init),
+                                comments: commentsWithAuthor.map {
+                                    return CommentExtendResource<AuthorResource>(
+                                        $0.0,
+                                        author: AuthorResource($0.1)
+                                    )
+                                },
+                                likes: likes,
+                                dislikes: dislikes
+                            )
+                        }
                     }
                 }, eventLoop: req.eventLoop)
             }
@@ -382,6 +388,32 @@ final class PostController {
                         conn: conn,
                         commentId: body.commentId,
                         authorId: authorId
+                    ).map { (result: Bool) -> CommonResource in
+                        return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
+                    }
+                }
+            }
+        }
+    }
+
+    func ratePost(_ req: Request) throws -> Future<CommonResource> {
+        let postService: PostService = try req.make(PostService.self)
+        let authorService: AuthorService = try req.make(AuthorService.self)
+
+        let userId = try AuthMiddleware.getAuthHeader(req)
+
+        return req.withPooledConnection(to: .mysql) { (conn: MySQLConnection) -> Future<CommonResource> in
+            return try req.content.decode(RatePostRequest.self).flatMap { (body: RatePostRequest) -> Future<CommonResource> in
+                try body.validate()
+
+                let futureAuthor: Future<Author> = try authorService.getAuthorByUserId(conn: conn, userId: userId)
+
+                return futureAuthor.flatMap { (author: Author) -> Future<CommonResource> in
+                    return postService.attachOpinion(
+                        conn: conn,
+                        postId: body.postId,
+                        author: author,
+                        value: body.value
                     ).map { (result: Bool) -> CommonResource in
                         return CommonResource(code: Int(result), message: CommonResource.CommonMessage.success.rawValue)
                     }

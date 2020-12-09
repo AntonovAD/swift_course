@@ -70,3 +70,19 @@ struct EditPostCommentRequest: Resource {
 struct DeletePostCommentRequest: Resource {
     let commentId: Comment.ID
 }
+
+struct RatePostRequest: Resource {
+    let postId: Post.ID
+    let value: Int
+}
+
+extension RatePostRequest: Validatable, Reflectable {
+    static func validations() throws -> Validations<RatePostRequest> {
+        var validations = Validations(RatePostRequest.self)
+        try validations.add(\.value, "in:0,1") { (value: Int) -> Void in
+            guard [0,1].contains(value) else { throw ValidationError.notIn(field: "value")}
+            return
+        }
+        return validations
+    }
+}
