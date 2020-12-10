@@ -18,15 +18,41 @@ public func routes(_ router: Router) throws {
     router.post("todos", use: todoController.create)
     router.delete("todos", Todo.parameter, use: todoController.delete)
 
-    let authorized = router.grouped(AuthMiddleware())
+    let errorable = router.grouped(AppErrorMiddleware())
 
     let userController = UserController()
+    let authorController = AuthorController()
+    let postController = PostController()
 
-    router.group("user") { (router: Router) -> () in
-        router.post("login", use: userController.signIn)
-    }
+    errorable.group("api") { (router: Router) -> () in
+        let authorized = router.grouped(AuthMiddleware())
 
-    authorized.group("user") { (router: Router) -> () in
-        router.get("get", use: userController.getUser)
+        router.group("user") { (router: Router) -> () in
+            router.post("login", use: userController.signIn)
+        }
+
+        authorized.group("user") { (router: Router) -> () in
+            router.get("get", use: userController.getUser)
+        }
+
+        authorized.group("author") { (router: Router) -> () in
+            router.get("get", use: authorController.getAuthor)
+        }
+
+        authorized.group("post") { (router: Router) -> () in
+            router.get("get/posts/recent", use: postController.getRecentPosts_PostExtendResource_fetchJoin)
+            router.post("get/posts/recent", use: postController.getRecentPosts_PostExtendResource_fetchJoin)
+            router.post("write/post", use: postController.writePost)
+            router.get("get/drafts", use: postController.getDrafts)
+            router.post("write/draft", use: postController.writeDraft)
+            router.post("publish/draft", use: postController.publishDraft)
+            router.post("edit/draft", use: postController.editDraft)
+            router.post("delete/draft", use: postController.deleteDraft)
+            router.post("write/post/comment", use: postController.writeComment)
+            router.post("edit/post/comment", use: postController.editComment)
+            router.post("delete/post/comment", use: postController.deleteComment)
+            router.post("rate/post", use: postController.ratePost)
+            router.post("rate/post/comment", use: postController.ratePostComment)
+        }
     }
 }

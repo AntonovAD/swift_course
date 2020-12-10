@@ -1,7 +1,7 @@
 import FluentMySQL
 import Vapor
 
-final class PostCommentPivot: MySQLPivot {
+final class PostCommentPivot: MySQLPivot, ModifiablePivot {
     static var name: String = "Post_Comment"
 
     typealias Database = MySQLDatabase
@@ -15,6 +15,11 @@ final class PostCommentPivot: MySQLPivot {
     static var leftIDKey: LeftIDKey = \PostCommentPivot.postId
     var commentId: Comment.ID
     static var rightIDKey: RightIDKey = \PostCommentPivot.commentId
+
+    init(_ left: Post, _ right: Comment) throws {
+        self.postId = try left.requireID()
+        self.commentId = try right.requireID()
+    }
 }
 
 extension PostCommentPivot: Migration {

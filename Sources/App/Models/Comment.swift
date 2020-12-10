@@ -17,6 +17,11 @@ final class Comment: MySQLModel {
         return self.parent(\.authorId)
     }
 
+    var referenceId: Comment.ID?
+    var reference: Parent<Comment, Comment>? {
+        return self.parent(\.id)
+    }
+
     var opinions: Siblings<Comment, Author, CommentOpinionPivot> {
         return self.siblings()
     }
@@ -30,6 +35,18 @@ final class Comment: MySQLModel {
     // SoftDelete
     static let deletedAtKey: TimestampKey? = \.deletedAt
     var deletedAt: Date?
+
+    init(
+        id: Comment.ID?,
+        message: String,
+        authorId: Author.ID,
+        referenceId: Comment.ID? = nil
+    ) {
+        self.id = id
+        self.message = message
+        self.authorId = authorId
+        self.referenceId = referenceId
+    }
 }
 
 extension Comment: Migration {
@@ -48,6 +65,9 @@ extension Comment: Migration {
 
             // SoftDelete
             builder.field(for: \.deletedAt, type: .datetime)
+
+            builder.field(for: \.referenceId)
+            builder.reference(from: \.referenceId, to: \Comment.id)
         }
     }
 }
