@@ -7,7 +7,11 @@ final class CommentService: ServiceType {
     }
 
     func getCommentsWithAuthor(conn: MySQLConnection, comments: [Comment]) throws -> [Future<(Comment, Author)>] {
-        return comments.map { comment -> Future<(Comment, Author)> in
+        return comments
+            .filter { comment -> Bool in
+                return comment.deletedAt == nil
+            }
+            .map { comment -> Future<(Comment, Author)> in
             let futureCommentAuthor: Future<Author> = comment.author
                 .query(on: conn)
                 .first()
