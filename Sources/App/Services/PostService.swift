@@ -323,7 +323,6 @@ final class PostService: ServiceType {
     ) throws -> Future<Bool> {
         let futurePost: Future<Post> = Post.query(on: conn)
             .filter(\.id == postId)
-            .filter(\.authorId == authorId)
             .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
             .first()
             .unwrap(or: PostError.notFound)
