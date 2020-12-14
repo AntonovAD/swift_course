@@ -8,6 +8,7 @@ final class PostService: ServiceType {
 
     func getRecentPosts_Lazy(conn: MySQLConnection) throws -> Future<[Post]> {
         return Post.query(on: conn)
+            .filter(\.deletedAt == nil)
             .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
             .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
             .sort(\.updatedAt, .descending)
@@ -18,6 +19,7 @@ final class PostService: ServiceType {
         return Post.query(on: conn)
             .join(\Status.id, to: \Post.statusId)
             .join(\Author.id, to: \Post.authorId)
+            .filter(\.deletedAt == nil)
             .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
             .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
             .sort(\.updatedAt, .descending)
@@ -40,6 +42,7 @@ final class PostService: ServiceType {
         return Post.query(on: conn)
             .join(\Status.id, to: \Post.statusId)
             .join(\Author.id, to: \Post.authorId)
+            .filter(\.deletedAt == nil)
             .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
             .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
             .sort(\.updatedAt, .descending)
@@ -70,6 +73,7 @@ final class PostService: ServiceType {
 
         // цепляю фильтры
         queryBuilder = queryBuilder
+            .filter(\.deletedAt == nil)
             .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
             .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
 
@@ -134,6 +138,7 @@ final class PostService: ServiceType {
         return Post.query(on: conn)
             .join(\Status.id, to: \Post.statusId)
             .join(\Author.id, to: \Post.authorId)
+            .filter(\.deletedAt == nil)
             .filter(\.updatedAt >= Calendar.current.date(byAdding: .day, value: -7, to: Date()))
             .filter(\.statusId == Status.EnumStatus.PUBLISHED.rawValue)
             .sort(\.updatedAt, .descending)
@@ -184,6 +189,7 @@ final class PostService: ServiceType {
         return Post.query(on: conn)
             .join(\Status.id, to: \Post.statusId)
             .join(\Author.id, to: \Post.authorId)
+            .filter(\.deletedAt == nil)
             .filter(\.authorId == authorId)
             .filter(\.statusId == Status.EnumStatus.DRAFT.rawValue)
             .sort(\.updatedAt, .descending)
